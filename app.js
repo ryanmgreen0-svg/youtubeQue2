@@ -48,19 +48,17 @@ function saveHeaderLinks(){ localStorage.setItem(HEADER_LINKS_KEY, JSON.stringif
 function addHeaderLink({title,url}){ const link = {id:uid(), title, url, created: new Date().toISOString()}; headerLinks.push(link); saveHeaderLinks(); renderHeaderLinks(); }
 function editHeaderLink(id){ const link = headerLinks.find(l=>l.id===id); if(!link) return; const newTitle = prompt('Edit text label', link.title); if(!newTitle) return; const newUrl = prompt('Edit URL', link.url); if(!newUrl) return; link.title = newTitle; link.url = newUrl; saveHeaderLinks(); renderHeaderLinks(); }
 function renderHeaderLinks(){ headerLinksEl.innerHTML = ''; headerLinks.forEach(link=>{
-    const a = document.createElement('a')
-    a.href = link.url
-    a.target = '_blank'
-    a.rel = 'noopener'
-    a.className = 'header-link'
-    a.textContent = link.title
-    a.title = link.url
+    const span = document.createElement('span')
+    span.className = 'header-link'
+    span.textContent = link.title
+    span.title = link.url
+    span.addEventListener('click', ()=>{ window.open(link.url, '_blank') })
     let pressTimer = null
-    a.addEventListener('mousedown', (ev)=>{ if(ev.button!==0) return; pressTimer = setTimeout(()=>{ editHeaderLink(link.id) }, 600) })
-    a.addEventListener('mouseup', ()=>{ clearTimeout(pressTimer) })
-    a.addEventListener('mouseleave', ()=>{ clearTimeout(pressTimer) })
-    a.addEventListener('dblclick', (ev)=>{ ev.preventDefault(); editHeaderLink(link.id) })
-    headerLinksEl.appendChild(a)
+    span.addEventListener('mousedown', (ev)=>{ if(ev.button!==0) return; pressTimer = setTimeout(()=>{ editHeaderLink(link.id) }, 600) })
+    span.addEventListener('mouseup', ()=>{ clearTimeout(pressTimer) })
+    span.addEventListener('mouseleave', ()=>{ clearTimeout(pressTimer) })
+    span.addEventListener('dblclick', (ev)=>{ ev.preventDefault(); editHeaderLink(link.id) })
+    headerLinksEl.appendChild(span)
   })
 }
 
@@ -100,7 +98,7 @@ function renderSection(title, list){
     starBtn.textContent = it.favorite ? '★' : '☆'
     starBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleFav(it.id) })
     delBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); removeItem(it.id) })
-    el.addEventListener('click', ()=>{ window.open(it.url, '_blank'); removeItem(it.id) })
+    el.addEventListener('click', ()=>{ removeItem(it.id); window.open(it.url, '_blank') })
 
     // long-press to edit
     let pressTimer = null
