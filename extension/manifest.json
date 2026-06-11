@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Queue QuickAdd",
+  "version": "0.1",
+  "description": "Right-click to queue a YouTube video into your hosted queue app.",
+  "permissions": ["contextMenus","scripting","tabs","activeTab"],
+  "background": {"service_worker": "background.js"},
+  "host_permissions": ["<all_urls>"],
+  "icons": {"48":"icon48.png"}
+}
