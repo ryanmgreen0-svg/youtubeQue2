@@ -76,7 +76,7 @@ function renderSection(title, list){
     starBtn.textContent = it.favorite ? '★' : '☆'
     starBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleFav(it.id) })
     delBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); removeItem(it.id) })
-    el.addEventListener('click', ()=>{ if(confirm('Delete this item?')) removeItem(it.id) })
+    el.addEventListener('click', ()=>{ window.open(it.url, '_blank') })
 
     // long-press to edit
     let pressTimer = null

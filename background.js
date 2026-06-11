@@ -3,30 +3,60 @@ const APP_URL = 'https://ryanmgreen0-svg.github.io/youtubeQue2/' // GitHub Pages
 chrome.runtime.onInstalled.addListener(()=>{
   chrome.contextMenus.create({
     id:'queue-video',
-    title:'Queue video to My Queue',
-    contexts:['page','video']
+    title:'Add to queue',
+    contexts:['page','link','image','video']
   })
 })
 
+function extractUrlFromInfo(info, tab){
+  // Prefer link (e.g., right-clicking title), then src, then page URL
+  return info.linkUrl || info.srcUrl || info.pageUrl || (tab && tab.url) || null
+}
+
 chrome.contextMenus.onClicked.addListener((info, tab)=>{
   if(info.menuItemId !== 'queue-video') return
-  // ask the page for current video/url/title
+  const targetUrl = extractUrlFromInfo(info, tab)
+  if(!targetUrl){
+    // fallback: try to query page for location/title
+    chrome.scripting.executeScript({
+      target: {tabId: tab.id},
+      func: ()=>({href: location.href, title: document.title})
+    }).then(results=>{
+      const r = results?.[0]?.result
+      if(!r) return
+      openQueueTabFor(r.href, r.title)
+    }).catch(()=>{})
+    return
+  }
+  // if user right-clicked a plain link, we might not have the page title
   chrome.scripting.executeScript({
     target: {tabId: tab.id},
-    func: ()=>({href: location.href, title: document.title})
+    func: ()=>document.title
   }).then(results=>{
-    const r = results?.[0]?.result
-    if(!r) return
-    // try to extract v= param
-    try{
-      const u = new URL(r.href)
-      let vid = u.searchParams.get('v')
-      if(!vid){ const p=u.pathname.split('/'); vid = p.pop() }
-      const title = encodeURIComponent(r.title.replace(/ - YouTube$/i, ''))
-      const target = `${APP_URL}?videoId=${vid}&title=${title}`
-      chrome.tabs.create({url: target})
-    }catch(e){
-      chrome.tabs.create({url: APP_URL})
-    }
-  })
+    const pageTitle = results?.[0]?.result || ''
+    openQueueTabFor(targetUrl, pageTitle)
+  }).catch(()=> openQueueTabFor(targetUrl,null))
 })
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8) }
+
+function openQueueTabFor(href, title){
+  try{
+    const u = new URL(href)
+    let vid = u.searchParams.get('v')
+    if(!vid){ const parts = u.pathname.split('/').filter(Boolean); vid = parts.pop() }
+    const item = { id: uid(), url: href, title: title || '', videoId: vid, favorite:false, created: new Date().toISOString() }
+    chrome.storage.local.get({queuedItems:[]}, (res)=>{
+      const arr = res.queuedItems || []
+      arr.unshift(item)
+      chrome.storage.local.set({queuedItems: arr})
+    })
+  }catch(e){
+    const item = { id: uid(), url: href||APP_URL, title: title||'', videoId: null, favorite:false, created: new Date().toISOString() }
+    chrome.storage.local.get({queuedItems:[]}, (res)=>{
+      const arr = res.queuedItems || []
+      arr.unshift(item)
+      chrome.storage.local.set({queuedItems: arr})
+    })
+  }
+}
