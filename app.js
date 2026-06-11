@@ -1,12 +1,15 @@
 const APP_KEY = 'ytQueueItems_v1'
+const HEADER_LINKS_KEY = 'ytHeaderLinks_v1'
 const APP_TITLE = document.getElementById('view-title')
 const homeBtn = document.getElementById('home-btn')
 const favBtn = document.getElementById('fav-btn')
 const addBtn = document.getElementById('add-btn')
 const sections = document.getElementById('sections')
+const headerLinksEl = document.getElementById('header-links')
 const template = document.getElementById('item-template')
 
 let items = load()
+let headerLinks = loadHeaderLinks()
 let view = 'home'
 
 function save(){ localStorage.setItem(APP_KEY, JSON.stringify(items)) }
@@ -39,6 +42,27 @@ function addItem({url,title,videoId,favorite=false,created=new Date().toISOStrin
 function removeItem(id){ items = items.filter(i=>i.id!==id); save(); render() }
 
 function toggleFav(id){ const it = items.find(i=>i.id===id); if(!it) return; it.favorite=!it.favorite; save(); render() }
+
+function loadHeaderLinks(){ try{ return JSON.parse(localStorage.getItem(HEADER_LINKS_KEY)||'[]') }catch(e){return[]} }
+function saveHeaderLinks(){ localStorage.setItem(HEADER_LINKS_KEY, JSON.stringify(headerLinks)) }
+function addHeaderLink({title,url}){ const link = {id:uid(), title, url, created: new Date().toISOString()}; headerLinks.push(link); saveHeaderLinks(); renderHeaderLinks(); }
+function editHeaderLink(id){ const link = headerLinks.find(l=>l.id===id); if(!link) return; const newTitle = prompt('Edit text label', link.title); if(!newTitle) return; const newUrl = prompt('Edit URL', link.url); if(!newUrl) return; link.title = newTitle; link.url = newUrl; saveHeaderLinks(); renderHeaderLinks(); }
+function renderHeaderLinks(){ headerLinksEl.innerHTML = ''; headerLinks.forEach(link=>{
+    const a = document.createElement('a')
+    a.href = link.url
+    a.target = '_blank'
+    a.rel = 'noopener'
+    a.className = 'header-link'
+    a.textContent = link.title
+    a.title = link.url
+    let pressTimer = null
+    a.addEventListener('mousedown', (ev)=>{ if(ev.button!==0) return; pressTimer = setTimeout(()=>{ editHeaderLink(link.id) }, 600) })
+    a.addEventListener('mouseup', ()=>{ clearTimeout(pressTimer) })
+    a.addEventListener('mouseleave', ()=>{ clearTimeout(pressTimer) })
+    a.addEventListener('dblclick', (ev)=>{ ev.preventDefault(); editHeaderLink(link.id) })
+    headerLinksEl.appendChild(a)
+  })
+}
 
 function editItem(id){ const it = items.find(i=>i.id===id); if(!it) return; const newUrl = prompt('Edit URL', it.url); if(!newUrl) return; const newTitle = prompt('Edit title', it.title)||it.title; const vid = extractVideoId(newUrl)||it.videoId; it.url=newUrl; it.title=newTitle; it.videoId=vid; save(); render() }
 
@@ -76,7 +100,7 @@ function renderSection(title, list){
     starBtn.textContent = it.favorite ? '★' : '☆'
     starBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleFav(it.id) })
     delBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); removeItem(it.id) })
-    el.addEventListener('click', ()=>{ window.open(it.url, '_blank') })
+    el.addEventListener('click', ()=>{ window.open(it.url, '_blank'); removeItem(it.id) })
 
     // long-press to edit
     let pressTimer = null
@@ -93,11 +117,11 @@ function renderSection(title, list){
 homeBtn.addEventListener('click', ()=>{ view='home'; homeBtn.classList.add('selected'); favBtn.classList.remove('selected'); APP_TITLE.textContent='Home'; render() })
 favBtn.addEventListener('click', ()=>{ view='favorites'; favBtn.classList.add('selected'); homeBtn.classList.remove('selected'); APP_TITLE.textContent='Favorites'; render() })
 addBtn.addEventListener('click', ()=>{
-  const url = prompt('Video URL')
+  const label = prompt('Text label for header link')
+  if(!label) return
+  const url = prompt('Link URL')
   if(!url) return
-  const title = prompt('Title (optional)') || url
-  const vid = extractVideoId(url)
-  addItem({url,title,videoId:vid,created:new Date().toISOString()})
+  addHeaderLink({title: label, url})
 })
 
 // handle url params (extension will open app with params)
@@ -109,4 +133,4 @@ function handleParams(){ const p = new URLSearchParams(location.search); if(p.ha
   history.replaceState({},document.title,location.pathname)
 }}
 
-window.addEventListener('load', ()=>{ handleParams(); render() })
+window.addEventListener('load', ()=>{ renderHeaderLinks(); handleParams(); render() })
