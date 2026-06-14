@@ -65,7 +65,7 @@ function renderHeaderLinks(){ headerLinksEl.innerHTML = ''; headerLinks.forEach(
 function editItem(id){ const it = items.find(i=>i.id===id); if(!it) return; const newUrl = prompt('Edit URL', it.url); if(!newUrl) return; const newTitle = prompt('Edit title', it.title)||it.title; const vid = extractVideoId(newUrl)||it.videoId; it.url=newUrl; it.title=newTitle; it.videoId=vid; save(); render() }
 
 function render(){ sections.innerHTML=''
-  const list = view==='favorites' ? items.filter(i=>i.favorite) : items
+  const list = view==='favorites' ? items.filter(i=>i.favorite) : items.filter(i=>!i.favorite)
   const groups = {today:[], yesterday:[], earlier:[]}
   const now = new Date();
   list.forEach(it=>{
