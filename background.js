@@ -15,6 +15,7 @@ function extractUrlFromInfo(info, tab){
 
 chrome.contextMenus.onClicked.addListener((info, tab)=>{
   if(info.menuItemId !== 'queue-video') return
+  console.debug('contextMenus.onClicked', {info, tab})
   let targetUrl = extractUrlFromInfo(info, tab)
 
   const tryResolveFromHover = async ()=>{
@@ -60,6 +61,7 @@ chrome.contextMenus.onClicked.addListener((info, tab)=>{
     // if we only have the page url (or nothing), try to resolve a hovered link under cursor
     if(!targetUrl || targetUrl === (tab && tab.url)){
       const found = await tryResolveFromHover()
+      console.debug('tryResolveFromHover result', found)
       if(found && found.href) targetUrl = found.href
       if(found && found.text) {
         openQueueTabFor(targetUrl || tab.url, found.text); return
@@ -70,6 +72,7 @@ chrome.contextMenus.onClicked.addListener((info, tab)=>{
     try{
       const results = await chrome.scripting.executeScript({ target: {tabId: tab.id}, func: ()=>document.title })
       const pageTitle = results?.[0]?.result || ''
+      console.debug('using pageTitle fallback', pageTitle)
       openQueueTabFor(targetUrl || (tab && tab.url) || null, pageTitle)
     }catch(e){ openQueueTabFor(targetUrl || (tab && tab.url) || null, null) }
   })()
@@ -101,6 +104,7 @@ function openQueueTabFor(href, title){
     try{
       const fetched = await fetchPageTitle(href)
       const finalTitle = fetched || title || ''
+      console.debug('openQueueTabFor', {href, title, fetched, finalTitle})
       const u = new URL(href)
       let vid = u.searchParams.get('v')
       if(!vid){ const parts = u.pathname.split('/').filter(Boolean); vid = parts.pop() }
@@ -112,6 +116,7 @@ function openQueueTabFor(href, title){
       })
     }catch(e){
       const item = { id: uid(), url: href||APP_URL, title: title||'', videoId: null, favorite:false, created: new Date().toISOString() }
+      console.debug('openQueueTabFor fallback item', item)
       chrome.storage.local.get({queuedItems:[]}, (res)=>{
         const arr = res.queuedItems || []
         arr.unshift(item)

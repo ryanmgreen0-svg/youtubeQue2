@@ -18,8 +18,10 @@ button.selected{background:var(--accent);color:#000;border-color:transparent}
 .title{font-size:10px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);flex:1;margin-right:6px}
 .actions{display:flex;gap:6px}
 .actions button{width:20px;height:20px;padding:0;border-radius:4px;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center}
-.star{background:transparent;color:var(--accent);border-color:transparent;width:18px;height:18px;font-size:14px;padding:0}
-.delete{background:#ff3b3b;color:#fff;border-color:transparent;width:18px;height:18px;font-size:12px;padding:0}
+.star{background:transparent;color:var(--accent);border-color:transparent;width:16px;height:16px;font-size:12px;padding:0 !important}
+.star .icon{font-size:12px}
+.delete{background:#ff3b3b;color:#fff;border-color:transparent;width:16px;height:16px;font-size:12px;padding:0 !important}
+.actions button{min-width:16px;min-height:16px}
 
 @media (max-width:1200px){.grid{grid-template-columns:repeat(4,1fr)}.thumb{height:110px}}
 @media (max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.thumb{height:140px}}
