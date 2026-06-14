@@ -15,46 +15,46 @@ function extractUrlFromInfo(info, tab){
 
 chrome.contextMenus.onClicked.addListener((info, tab)=>{
   if(info.menuItemId !== 'queue-video') return
-  const targetUrl = extractUrlFromInfo(info, tab)
-  if(!targetUrl){
-    // fallback: try to query page for location/title
-    chrome.scripting.executeScript({
-      target: {tabId: tab.id},
-      func: ()=>({href: location.href, title: document.title})
-    }).then(results=>{
-      const r = results?.[0]?.result
-      if(!r) return
-      openQueueTabFor(r.href, r.title)
-    }).catch(()=>{})
-    return
-  }
-  // Try to extract the clicked element's text/title from the page first
-  chrome.scripting.executeScript({
-    target: {tabId: tab.id},
-    func: (target)=>{
-      try{
-        const norm = (h)=>{ try{ return new URL(h, location.href).href }catch(e){return null} }
-        const els = Array.from(document.querySelectorAll('a,area,link,img,button,source'))
-        for(const e of els){
-          const href = e.href || e.getAttribute('href') || e.src || e.getAttribute('src')
-          if(!href) continue
-          const full = norm(href)
-          if(full === target){
-            return (e.getAttribute('aria-label')||e.getAttribute('title')||e.alt||e.textContent||'').trim()
-          }
+  let targetUrl = extractUrlFromInfo(info, tab)
+
+  const tryResolveFromHover = async ()=>{
+    try{
+      const res = await chrome.scripting.executeScript({
+        target: {tabId: tab.id},
+        func: ()=>{
+          try{
+            const hovered = document.querySelectorAll(':hover')
+            const el = hovered[hovered.length-1]
+            if(!el) return {href:'', text:''}
+            const a = el.closest('a') || el.closest('[href]') || el
+            const href = a && (a.href || a.getAttribute('href') || a.src || a.getAttribute('src')) || ''
+            const full = href ? new URL(href, location.href).href : ''
+            const text = (a.getAttribute && (a.getAttribute('aria-label')||a.getAttribute('title')) ) || a.alt || a.textContent || ''
+            return {href: full, text: text.trim()}
+          }catch(e){ return {href:'', text:''} }
         }
-      }catch(e){}
-      return ''
-    },
-    args: [targetUrl]
-  }).then(results=>{
-    const linkText = results?.[0]?.result || ''
-    if(linkText){ openQueueTabFor(targetUrl, linkText); return }
-    // fallback: use page title if we can't find a matching element text
-    chrome.scripting.executeScript({ target: {tabId: tab.id}, func: ()=>document.title })
-      .then(results2=>{ const pageTitle = results2?.[0]?.result || ''; openQueueTabFor(targetUrl, pageTitle) })
-      .catch(()=> openQueueTabFor(targetUrl,null))
-  }).catch(()=> openQueueTabFor(targetUrl,null))
+      })
+      return res?.[0]?.result || {href:'', text:''}
+    }catch(e){ return {href:'', text:''} }
+  }
+
+  ;(async ()=>{
+    // if we only have the page url (or nothing), try to resolve a hovered link under cursor
+    if(!targetUrl || targetUrl === (tab && tab.url)){
+      const found = await tryResolveFromHover()
+      if(found && found.href) targetUrl = found.href
+      if(found && found.text) {
+        openQueueTabFor(targetUrl || tab.url, found.text); return
+      }
+    }
+
+    // if we got here and still don't have link text, fallback to page title then fetch title
+    try{
+      const results = await chrome.scripting.executeScript({ target: {tabId: tab.id}, func: ()=>document.title })
+      const pageTitle = results?.[0]?.result || ''
+      openQueueTabFor(targetUrl || (tab && tab.url) || null, pageTitle)
+    }catch(e){ openQueueTabFor(targetUrl || (tab && tab.url) || null, null) }
+  })()
 })
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8) }
