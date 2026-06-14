@@ -26,10 +26,28 @@ chrome.contextMenus.onClicked.addListener((info, tab)=>{
             const hovered = document.querySelectorAll(':hover')
             const el = hovered[hovered.length-1]
             if(!el) return {href:'', text:''}
+
+            // prefer finding a nested anchor or element that contains a youtube watch link
+            const walker = el.querySelectorAll ? Array.from(el.querySelectorAll('a[href], [href], img[src], [data-video-id]')) : []
+            // include the element itself as first candidate
+            if(el.matches && (el.matches('a[href]') || el.hasAttribute && (el.hasAttribute('href')||el.hasAttribute('data-video-id')))) walker.unshift(el)
+
+            for(const cand of walker){
+              const href = cand.href || cand.getAttribute && (cand.getAttribute('href')||cand.getAttribute('data-href')) || cand.src || ''
+              if(!href) continue
+              const full = href ? new URL(href, location.href).href : ''
+              if(/youtube\.com\/watch|\?v=/.test(full) || cand.getAttribute('data-video-id')){
+                const vid = cand.getAttribute && (cand.getAttribute('data-video-id')||'')
+                const text = (cand.getAttribute && (cand.getAttribute('aria-label')||cand.getAttribute('title')) ) || cand.alt || cand.textContent || ''
+                return {href: vid? `https://www.youtube.com/watch?v=${vid}`:full, text: text.trim()}
+              }
+            }
+
+            // fallback to closest anchor
             const a = el.closest('a') || el.closest('[href]') || el
-            const href = a && (a.href || a.getAttribute('href') || a.src || a.getAttribute('src')) || ''
-            const full = href ? new URL(href, location.href).href : ''
-            const text = (a.getAttribute && (a.getAttribute('aria-label')||a.getAttribute('title')) ) || a.alt || a.textContent || ''
+            const href = a && (a.href || a.getAttribute && (a.getAttribute('href')||a.getAttribute('data-video-id')) || a.src) || ''
+            const full = href ? (href.includes('data-video-id') ? href : new URL(href, location.href).href) : ''
+            const text = (a && (a.getAttribute && (a.getAttribute('aria-label')||a.getAttribute('title')))) || a.alt || (a && a.textContent) || ''
             return {href: full, text: text.trim()}
           }catch(e){ return {href:'', text:''} }
         }
