@@ -28,13 +28,32 @@ chrome.contextMenus.onClicked.addListener((info, tab)=>{
     }).catch(()=>{})
     return
   }
-  // if user right-clicked a plain link, we might not have the page title
+  // Try to extract the clicked element's text/title from the page first
   chrome.scripting.executeScript({
     target: {tabId: tab.id},
-    func: ()=>document.title
+    func: (target)=>{
+      try{
+        const norm = (h)=>{ try{ return new URL(h, location.href).href }catch(e){return null} }
+        const els = Array.from(document.querySelectorAll('a,area,link,img,button,source'))
+        for(const e of els){
+          const href = e.href || e.getAttribute('href') || e.src || e.getAttribute('src')
+          if(!href) continue
+          const full = norm(href)
+          if(full === target){
+            return (e.getAttribute('aria-label')||e.getAttribute('title')||e.alt||e.textContent||'').trim()
+          }
+        }
+      }catch(e){}
+      return ''
+    },
+    args: [targetUrl]
   }).then(results=>{
-    const pageTitle = results?.[0]?.result || ''
-    openQueueTabFor(targetUrl, pageTitle)
+    const linkText = results?.[0]?.result || ''
+    if(linkText){ openQueueTabFor(targetUrl, linkText); return }
+    // fallback: use page title if we can't find a matching element text
+    chrome.scripting.executeScript({ target: {tabId: tab.id}, func: ()=>document.title })
+      .then(results2=>{ const pageTitle = results2?.[0]?.result || ''; openQueueTabFor(targetUrl, pageTitle) })
+      .catch(()=> openQueueTabFor(targetUrl,null))
   }).catch(()=> openQueueTabFor(targetUrl,null))
 })
 

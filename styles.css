@@ -17,9 +17,9 @@ button.selected{background:var(--accent);color:#000;border-color:transparent}
 .meta{display:flex;align-items:center;justify-content:space-between;padding:8px}
 .title{font-size:10px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
 .actions{display:flex;gap:6px}
-.actions button{padding:4px 6px;border-radius:4px}
-.star{background:transparent}
-.delete{background:#ff3b3b;color:#fff}
+.actions button{padding:2px 4px;border-radius:4px;font-size:11px;line-height:1}
+.star{background:transparent;font-size:14px;padding:2px 6px}
+.delete{background:#ff3b3b;color:#fff;padding:2px 6px;font-size:12px}
 
 @media (max-width:1200px){.grid{grid-template-columns:repeat(4,1fr)}.thumb{height:110px}}
 @media (max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.thumb{height:140px}}
